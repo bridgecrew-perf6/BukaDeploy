@@ -1,0 +1,249 @@
+version: '3.9'
+
+services:
+
+  customersapp:
+    container_name: buka-customersapp
+    build: ./front-end/customersapp
+    ports:
+      - "8083:80"
+    environment: 
+      - GATEWAY_HOST=apigateway
+      - GATEWAY_PORT=85
+    networks:
+      default:
+        aliases:
+          - buka-customersapp
+    network_mode: bridge
+    restart: always
+  
+  carts:
+    container_name: buka-carts
+    build: ./microservices/carts
+    ports:
+      - "3001:3001"
+    environment:
+      - REDIS_HOST=cache
+      - REDIS_PASSWORD=RedisAdmin69
+      - CUSTOMER_SECRET_KEY=OvPVKSyRmvoUyE9
+      - EMPLOYEE_SECRET_KEY=ahxFismbtm15jQN
+    networks:
+      default:
+        aliases:
+          - buka-carts
+    network_mode: bridge
+    restart: on-failure
+  
+  commands:
+    container_name: buka-commands
+    build: ./microservices/commands
+    ports:
+      - "3002:3002"
+    environment:
+      - MONGO_HOST=mongo
+      - MONGO_PASSWORD=MongoAdmin69
+      - CUSTOMER_SECRET_KEY=OvPVKSyRmvoUyE9
+      - EMPLOYEE_SECRET_KEY=ahxFismbtm15jQN
+    networks:
+      default:
+        aliases:
+          - buka-commands
+    network_mode: bridge
+    restart: on-failure
+
+  deliveries:
+    container_name: buka-deliveries
+    build: ./microservices/deliveries
+    ports:
+      - "3003:3003"
+    environment:
+      - CUSTOMER_SECRET_KEY=OvPVKSyRmvoUyE9
+      - EMPLOYEE_SECRET_KEY=ahxFismbtm15jQN
+      - MONGO_HOST=mongo
+      - MONGO_PASSWORD=MongoAdmin69
+    networks:
+      default:
+        aliases:
+          - buka-deliveries
+    network_mode: bridge
+    restart: on-failure
+
+  foods:
+    container_name: buka-foods
+    build: ./microservices/foods
+    ports:
+      - "3004:3004"
+    environment:
+      - MONGO_HOST=mongo
+      - MONGO_PASSWORD=MongoAdmin69
+      - CUSTOMER_SECRET_KEY=OvPVKSyRmvoUyE9
+      - EMPLOYEE_SECRET_KEY=ahxFismbtm15jQN
+    networks:
+      default:
+        aliases:
+          - buka-foods
+    network_mode: bridge
+    restart: on-failure
+
+  logger:
+    container_name: buka-logger
+    build: ./microservices/logger
+    environment:
+      - CUSTOMER_SECRET_KEY=OvPVKSyRmvoUyE9
+      - EMPLOYEE_SECRET_KEY=ahxFismbtm15jQN
+    ports:
+      - "3005:3005"
+    networks:
+      default:
+        aliases:
+          - buka-logger
+    network_mode: bridge
+    restart: on-failure
+
+  payments:
+    container_name: buka-payments
+    build: ./microservices/payments
+    ports:
+      - "3006:3006"
+    environment:
+      - PAYPAL_CLIENT_ID=AU3IHuI1IdWMPLravW96xpYFAUxBul5gNlWov9UDpFo6hi5NG1dyjWaZb1Dz_lVwOwScr0Dqd8N2iC5I
+      - PAYPAL_CLIENT_SECRET=EPAS-cz8rFjf6BrXMZ8hNDmN6d_A1vtruAFA1AUUaRau5vm6Pagrw85YajzBActEmA7et0qiCk2Q8aJr
+      - RESTAURANTS_HOST=buka-restaurants
+      - RESTAURANTS_PORT=3007
+      - CUSTOMER_SECRET_KEY=OvPVKSyRmvoUyE9
+      - EMPLOYEE_SECRET_KEY=ahxFismbtm15jQN
+    networks:
+      default:
+        aliases:
+          - buka-payments
+    network_mode: bridge
+    restart: on-failure
+
+  restaurants:
+    container_name: buka-restaurants
+    build: ./microservices/restaurants
+    ports:
+      - "3007:3007"
+    environment:
+      - MONGO_HOST=mongo
+      - MONGO_PASSWORD=MongoAdmin69
+      - CUSTOMER_SECRET_KEY=OvPVKSyRmvoUyE9
+      - EMPLOYEE_SECRET_KEY=ahxFismbtm15jQN
+    networks:
+      default:
+        aliases:
+          - buka-restaurants
+    network_mode: bridge
+    restart: on-failure
+
+  users:
+    container_name: buka-users
+    build: ./microservices/users
+    ports:
+      - "3008:3008"
+    environment:
+      - CUSTOMER_SECRET_KEY=OvPVKSyRmvoUyE9
+      - EMPLOYEE_SECRET_KEY=ahxFismbtm15jQN
+      - TOKEN_LIFE=10d
+    networks:
+      default:
+        aliases:
+          - buka-users
+    network_mode: bridge
+    restart: on-failure
+
+  
+  nginx:
+    build: ./api-gateway/
+    container_name: apigateway
+    ports:
+      - 3000:85
+    networks:
+      default:
+        aliases:
+          - apigateway
+    network_mode: bridge
+    restart: always
+
+
+  
+  mariadb:
+    container_name: mariadb
+    command: --default-authentication-plugin=mysql_native_password
+    image: mariadb:10.4
+    ports:
+      - "3306:3306"
+    volumes:
+      - maria-data:/var/lib/mysql
+      - ./scripts:/docker-entrypoint-initdb.d
+    environment:
+      - MARIADB_DATABASE=Users
+      - MARIADB_ROOT_PASSWORD=DbAdmin69
+    networks:
+      default:
+        aliases:
+          - mariadb
+    network_mode: bridge
+
+  adminer:
+    container_name: adminer
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    networks:
+      default:
+        aliases:
+          - adminer
+    network_mode: bridge
+
+  redis:
+    container_name: cache
+    image: redis
+    # restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass RedisAdmin69
+    environment:
+      - REDIS_PASSWORD="RedisAdmin69"
+    volumes: 
+      - redis:/data
+    networks:
+      default:
+        aliases:
+          - cache
+    network_mode: bridge
+
+  redis-commander:
+    container_name: redis-commander
+    image: rediscommander/redis-commander:latest
+    # environment:
+    #   - REDIS_HOSTS=redis://default:RedisAdmin69@cache:6379
+    #   - HTTP_USER=root
+    #   - HTTP_PASSWORD=Commander69
+    ports:
+      - "8081:8081"
+    depends_on:
+      - cache
+
+  mongo: 
+    container_name: mongo
+    image: mongo
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=MongoAdmin69
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo:/data/db
+    networks:
+      default:
+        aliases:
+          - redis
+    network_mode: bridge
+
+volumes:
+  maria-data: {}
+  rabbit-data: {}
+  redis: {}
+  mongo: {}
